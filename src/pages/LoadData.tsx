@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Upload, Database, FileText, ArrowLeft, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const LoadData = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -21,6 +23,43 @@ const LoadData = () => {
         description: `${file.name} está listo para procesarse`,
       });
     }
+  };
+
+  const handleProcessData = () => {
+    if (!uploadedFile) {
+      toast({
+        title: "Error",
+        description: "Por favor carga un archivo primero",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    // Simular procesamiento de datos
+    setTimeout(() => {
+      const sampleData = {
+        fileName: uploadedFile.name,
+        rows: 1000,
+        columns: 15,
+        nullValues: 45,
+        duplicates: 12,
+        timestamp: new Date().toISOString(),
+      };
+      
+      localStorage.setItem('mlPipelineData', JSON.stringify(sampleData));
+      
+      toast({
+        title: "Datos procesados exitosamente",
+        description: `${sampleData.rows} filas y ${sampleData.columns} columnas cargadas`,
+      });
+      
+      setIsProcessing(false);
+      
+      // Navegar a la siguiente etapa
+      setTimeout(() => navigate('/clean-data'), 1000);
+    }, 2000);
   };
 
   return (
@@ -99,8 +138,14 @@ const LoadData = () => {
                 )}
 
                 <div className="flex gap-3 pt-4">
-                  <Button className="flex-1">Procesar datos</Button>
-                  <Button variant="outline">Vista previa</Button>
+                  <Button 
+                    className="flex-1" 
+                    onClick={handleProcessData}
+                    disabled={!uploadedFile || isProcessing}
+                  >
+                    {isProcessing ? "Procesando..." : "Procesar datos"}
+                  </Button>
+                  <Button variant="outline" disabled={!uploadedFile}>Vista previa</Button>
                 </div>
               </div>
             </Card>

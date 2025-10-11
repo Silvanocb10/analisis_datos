@@ -1,13 +1,73 @@
+import { useState } from "react";
 import { ArrowLeft, Brain, Cpu, Zap, Settings } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const TrainModels = () => {
+  const [isTraining, setIsTraining] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [trainingStatus, setTrainingStatus] = useState("Configurando...");
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleStartTraining = () => {
+    setIsTraining(true);
+    setProgress(0);
+    setTrainingStatus("Inicializando modelo...");
+
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+
+    const statusUpdates = [
+      { time: 0, status: "Inicializando modelo..." },
+      { time: 1000, status: "Dividiendo datos..." },
+      { time: 2000, status: "Entrenando Random Forest..." },
+      { time: 2500, status: "Optimizando hiperparámetros..." },
+      { time: 3000, status: "Finalizando entrenamiento..." },
+    ];
+
+    statusUpdates.forEach(({ time, status }) => {
+      setTimeout(() => setTrainingStatus(status), time);
+    });
+
+    setTimeout(() => {
+      const modelResults = {
+        modelType: "Random Forest Classifier",
+        accuracy: 94.2,
+        precision: 91.8,
+        recall: 93.5,
+        f1Score: 92.6,
+        trainingTime: "3.2s",
+        timestamp: new Date().toISOString(),
+      };
+
+      localStorage.setItem('mlPipelineResults', JSON.stringify(modelResults));
+
+      toast({
+        title: "Entrenamiento completado",
+        description: `Accuracy: ${modelResults.accuracy}% - Modelo listo`,
+      });
+
+      setIsTraining(false);
+      setTrainingStatus("Completado");
+      
+      setTimeout(() => navigate('/results'), 1000);
+    }, 3500);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -116,8 +176,14 @@ const TrainModels = () => {
                     </div>
 
                     <div className="flex gap-3 mt-8">
-                      <Button className="flex-1">Iniciar entrenamiento</Button>
-                      <Button variant="outline">Validación cruzada</Button>
+                      <Button 
+                        className="flex-1"
+                        onClick={handleStartTraining}
+                        disabled={isTraining}
+                      >
+                        {isTraining ? "Entrenando..." : "Iniciar entrenamiento"}
+                      </Button>
+                      <Button variant="outline" disabled={isTraining}>Validación cruzada</Button>
                     </div>
                   </Card>
                 </div>
@@ -128,14 +194,19 @@ const TrainModels = () => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Estado</span>
-                        <span className="text-warning font-medium">Configurando...</span>
+                        <span className={`font-medium ${isTraining ? 'text-primary' : 'text-warning'}`}>
+                          {trainingStatus}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Progreso</span>
-                        <span className="font-medium">0%</span>
+                        <span className="font-medium">{progress}%</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary transition-all duration-300" style={{ width: "0%" }} />
+                        <div 
+                          className="h-full bg-primary transition-all duration-300" 
+                          style={{ width: `${progress}%` }} 
+                        />
                       </div>
                     </div>
                   </Card>

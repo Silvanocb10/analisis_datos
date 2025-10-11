@@ -1,12 +1,86 @@
+import { useState, useEffect } from "react";
 import { ArrowLeft, Droplets, Settings2, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 const CleanData = () => {
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [dataStats, setDataStats] = useState({
+    rows: 1000,
+    columns: 15,
+    nullValues: 45,
+    duplicates: 12,
+  });
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('mlPipelineData');
+    if (storedData) {
+      const data = JSON.parse(storedData);
+      setDataStats({
+        rows: data.rows,
+        columns: data.columns,
+        nullValues: data.nullValues,
+        duplicates: data.duplicates,
+      });
+    }
+  }, []);
+
+  const handleOptionToggle = (optionId: string) => {
+    setSelectedOptions(prev => 
+      prev.includes(optionId) 
+        ? prev.filter(id => id !== optionId)
+        : [...prev, optionId]
+    );
+  };
+
+  const handleCleanData = () => {
+    if (selectedOptions.length === 0) {
+      toast({
+        title: "Selecciona al menos una opción",
+        description: "Elige las técnicas de limpieza que deseas aplicar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCleaning(true);
+
+    setTimeout(() => {
+      const cleanedStats = {
+        ...dataStats,
+        nullValues: Math.max(0, dataStats.nullValues - 30),
+        duplicates: 0,
+        rows: dataStats.rows - dataStats.duplicates,
+      };
+
+      setDataStats(cleanedStats);
+      
+      const storedData = JSON.parse(localStorage.getItem('mlPipelineData') || '{}');
+      localStorage.setItem('mlPipelineData', JSON.stringify({
+        ...storedData,
+        ...cleanedStats,
+        cleaned: true,
+        cleaningMethods: selectedOptions,
+      }));
+
+      toast({
+        title: "Limpieza completada",
+        description: `Dataset limpio: ${cleanedStats.rows} filas, ${cleanedStats.nullValues} valores nulos restantes`,
+      });
+
+      setIsCleaning(false);
+      setTimeout(() => navigate('/train-models'), 1000);
+    }, 2500);
+  };
+
   const cleaningOptions = [
     {
       category: "Valores faltantes",
@@ -82,7 +156,11 @@ const CleanData = () => {
                     <div className="space-y-3">
                       {section.options.map((option) => (
                         <div key={option.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                          <Checkbox id={option.id} />
+                          <Checkbox 
+                            id={option.id}
+                            checked={selectedOptions.includes(option.id)}
+                            onCheckedChange={() => handleOptionToggle(option.id)}
+                          />
                           <div className="flex-1">
                             <Label htmlFor={option.id} className="cursor-pointer font-medium">
                               {option.label}
@@ -100,11 +178,15 @@ const CleanData = () => {
               </div>
 
               <div className="flex gap-3 mt-8">
-                <Button className="flex-1 gap-2">
+                <Button 
+                  className="flex-1 gap-2"
+                  onClick={handleCleanData}
+                  disabled={isCleaning}
+                >
                   <Play className="w-4 h-4" />
-                  Ejecutar limpieza
+                  {isCleaning ? "Limpiando..." : "Ejecutar limpieza"}
                 </Button>
-                <Button variant="outline">Vista previa</Button>
+                <Button variant="outline" disabled={selectedOptions.length === 0}>Vista previa</Button>
               </div>
             </Card>
           </div>
@@ -117,19 +199,23 @@ const CleanData = () => {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">Filas totales</span>
-                    <span className="font-semibold">1,000</span>
+                    <span className="font-semibold">{dataStats.rows.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">Columnas</span>
-                    <span className="font-semibold">15</span>
+                    <span className="font-semibold">{dataStats.columns}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">Valores nulos</span>
-                    <span className="font-semibold text-warning">45</span>
+                    <span className={`font-semibold ${dataStats.nullValues > 0 ? 'text-warning' : 'text-success'}`}>
+                      {dataStats.nullValues}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Duplicados</span>
-                    <span className="font-semibold text-destructive">12</span>
+                    <span className={`font-semibold ${dataStats.duplicates > 0 ? 'text-destructive' : 'text-success'}`}>
+                      {dataStats.duplicates}
+                    </span>
                   </div>
                 </div>
                 <Separator />
