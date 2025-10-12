@@ -44,10 +44,10 @@ const Index = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-6">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-            ML Data Pipeline
+            Analisis de Datos con ML - DL
           </h1>
           <p className="text-muted-foreground text-lg">
-            Sistema completo para procesamiento de datos y machine learning
+            Sistema que limpia, entrena, modela y carga datos usando las librerías de Python de pandas, Numpy, Pytorch y Scikit-learn
           </p>
         </div>
       </header>
