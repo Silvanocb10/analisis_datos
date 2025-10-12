@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ArrowLeft, BarChart3, TrendingUp, Award, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,26 +7,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const Results = () => {
+  const [results, setResults] = useState<any>(null);
+
+  useEffect(() => {
+    const savedResults = localStorage.getItem('mlPipelineResults');
+    if (savedResults) {
+      setResults(JSON.parse(savedResults));
+    }
+  }, []);
+
+  if (!results) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">No hay resultados disponibles</h2>
+          <p className="text-muted-foreground mb-4">Primero debes entrenar un modelo</p>
+          <Link to="/train-models">
+            <Button>Ir a Entrenar Modelos</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const metrics = [
-    { label: "Accuracy", value: "94.2%", trend: "+2.3%" },
-    { label: "Precision", value: "91.8%", trend: "+1.5%" },
-    { label: "Recall", value: "93.5%", trend: "+3.1%" },
-    { label: "F1-Score", value: "92.6%", trend: "+2.8%" },
+    { label: "Accuracy", value: `${results.accuracy}%`, trend: `+${(Math.random() * 3).toFixed(1)}%` },
+    { label: "Precision", value: `${results.precision}%`, trend: `+${(Math.random() * 2).toFixed(1)}%` },
+    { label: "Recall", value: `${results.recall}%`, trend: `+${(Math.random() * 3).toFixed(1)}%` },
+    { label: "F1-Score", value: `${results.f1Score}%`, trend: `+${(Math.random() * 2.5).toFixed(1)}%` },
   ];
 
-  const confusionMatrix = [
-    [450, 12],
-    [8, 530],
-  ];
-
-  // Datos para gráfico de línea - Evolución del entrenamiento
-  const trainingData = [
-    { epoch: 1, train: 0.75, validation: 0.72 },
-    { epoch: 2, train: 0.82, validation: 0.80 },
-    { epoch: 3, train: 0.87, validation: 0.85 },
-    { epoch: 4, train: 0.91, validation: 0.89 },
-    { epoch: 5, train: 0.94, validation: 0.92 },
-  ];
+  const trainingData = results.trainingData || [];
+  const confusionMatrix = results.confusionMatrix || [[0, 0], [0, 0]];
+  const featureImportance = results.featureImportance || [];
+  const classDistribution = results.classDistribution.map((item: any, index: number) => ({
+    ...item,
+    color: index === 0 ? "hsl(var(--primary))" : "hsl(var(--success))"
+  }));
 
   // Datos para gráfico de barras - Comparación de modelos
   const modelComparison = [
@@ -33,23 +52,11 @@ const Results = () => {
     { model: "Logistic Reg", accuracy: 87.3, precision: 85.1, recall: 88.2 },
     { model: "SVM", accuracy: 89.5, precision: 87.9, recall: 90.1 },
     { model: "Neural Net", accuracy: 92.1, precision: 90.5, recall: 91.8 },
-  ];
-
-  // Datos para gráfico de pie - Distribución de clases
-  const classDistribution = [
-    { name: "Clase 0", value: 462, color: "hsl(var(--primary))" },
-    { name: "Clase 1", value: 538, color: "hsl(var(--success))" },
-  ];
-
-  // Datos para feature importance
-  const featureImportance = [
-    { name: "income", importance: 28 },
-    { name: "age", importance: 22 },
-    { name: "education", importance: 18 },
-    { name: "experience", importance: 15 },
-    { name: "location", importance: 11 },
-    { name: "skills", importance: 6 },
-  ];
+  ].map(m => 
+    m.model === results.modelType.split(' ')[0] + (results.modelType.includes('Forest') ? ' Forest' : '')
+      ? { ...m, accuracy: results.accuracy, precision: results.precision, recall: results.recall }
+      : m
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -287,7 +294,10 @@ const Results = () => {
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">Mejor modelo encontrado</h3>
-                <p className="text-sm text-muted-foreground">Random Forest Classifier con accuracy de 94.2%</p>
+                <p className="text-sm text-muted-foreground">{results.modelType} con accuracy de {results.accuracy}%</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Configuración: {results.nEstimators} estimadores, profundidad {results.maxDepth}, test size {results.testSize}%
+                </p>
               </div>
               <Button>Ver detalles</Button>
             </div>

@@ -13,6 +13,11 @@ const TrainModels = () => {
   const [isTraining, setIsTraining] = useState(false);
   const [progress, setProgress] = useState(0);
   const [trainingStatus, setTrainingStatus] = useState("Configurando...");
+  const [modelType, setModelType] = useState("Random Forest Classifier");
+  const [testSize, setTestSize] = useState(20);
+  const [randomState, setRandomState] = useState(42);
+  const [nEstimators, setNEstimators] = useState(100);
+  const [maxDepth, setMaxDepth] = useState(10);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -44,21 +49,78 @@ const TrainModels = () => {
     });
 
     setTimeout(() => {
+      // Generate dynamic results based on model configuration
+      const baseAccuracy = {
+        "Random Forest Classifier": 94.2,
+        "Logistic Regression": 87.3,
+        "Support Vector Machine (SVM)": 89.5,
+        "Gradient Boosting": 92.1,
+        "K-Nearest Neighbors": 85.8,
+        "Decision Tree": 83.4,
+      }[modelType] || 90;
+
+      const variation = (Math.random() - 0.5) * 3;
+      const accuracy = +(baseAccuracy + variation).toFixed(1);
+      const precision = +(accuracy - Math.random() * 3).toFixed(1);
+      const recall = +(accuracy - Math.random() * 2.5).toFixed(1);
+      const f1Score = +((2 * precision * recall) / (precision + recall)).toFixed(1);
+
+      // Generate training evolution data
+      const trainingData = Array.from({ length: 5 }, (_, i) => ({
+        epoch: i + 1,
+        train: +((0.75 + i * 0.05 + Math.random() * 0.02) * 100).toFixed(1),
+        validation: +((0.72 + i * 0.05 + Math.random() * 0.02) * 100).toFixed(1),
+      }));
+
+      // Generate confusion matrix
+      const total = 1000;
+      const truePositives = Math.floor((accuracy / 100) * (total / 2));
+      const trueNegatives = Math.floor((accuracy / 100) * (total / 2));
+      const falsePositives = Math.floor((total / 2) - trueNegatives);
+      const falseNegatives = Math.floor((total / 2) - truePositives);
+
+      const confusionMatrix = [
+        [trueNegatives, falsePositives],
+        [falseNegatives, truePositives],
+      ];
+
+      // Generate feature importance based on model type
+      const featureImportance = [
+        { name: "income", importance: 28 + (Math.random() * 10 - 5) },
+        { name: "age", importance: 22 + (Math.random() * 10 - 5) },
+        { name: "education", importance: 18 + (Math.random() * 10 - 5) },
+        { name: "experience", importance: 15 + (Math.random() * 10 - 5) },
+        { name: "location", importance: 11 + (Math.random() * 10 - 5) },
+        { name: "skills", importance: 6 + (Math.random() * 10 - 5) },
+      ].map(f => ({ ...f, importance: +f.importance.toFixed(1) }))
+        .sort((a, b) => b.importance - a.importance);
+
       const modelResults = {
-        modelType: "Random Forest Classifier",
-        accuracy: 94.2,
-        precision: 91.8,
-        recall: 93.5,
-        f1Score: 92.6,
-        trainingTime: "3.2s",
+        modelType,
+        accuracy,
+        precision,
+        recall,
+        f1Score,
+        testSize,
+        randomState,
+        nEstimators,
+        maxDepth,
+        trainingTime: (2 + Math.random() * 2).toFixed(1) + "s",
         timestamp: new Date().toISOString(),
+        trainingData,
+        confusionMatrix,
+        featureImportance,
+        classDistribution: [
+          { name: "Clase 0", value: trueNegatives + falsePositives },
+          { name: "Clase 1", value: truePositives + falseNegatives },
+        ],
       };
 
       localStorage.setItem('mlPipelineResults', JSON.stringify(modelResults));
 
       toast({
         title: "Entrenamiento completado",
-        description: `Accuracy: ${modelResults.accuracy}% - Modelo listo`,
+        description: `${modelType} - Accuracy: ${accuracy}%`,
       });
 
       setIsTraining(false);
@@ -120,6 +182,8 @@ const TrainModels = () => {
                         <select
                           id="model-type"
                           className="w-full mt-2 px-4 py-2 rounded-lg border border-input bg-background"
+                          value={modelType}
+                          onChange={(e) => setModelType(e.target.value)}
                         >
                           <option>Random Forest Classifier</option>
                           <option>Logistic Regression</option>
@@ -134,29 +198,50 @@ const TrainModels = () => {
                         <div>
                           <Label htmlFor="test-size">Tamaño del test (%)</Label>
                           <div className="mt-4">
-                            <Slider defaultValue={[20]} max={50} step={5} />
-                            <div className="text-sm text-muted-foreground mt-2">20%</div>
+                            <Slider 
+                              value={[testSize]} 
+                              max={50} 
+                              step={5} 
+                              onValueChange={(val) => setTestSize(val[0])}
+                            />
+                            <div className="text-sm text-muted-foreground mt-2">{testSize}%</div>
                           </div>
                         </div>
                         <div>
                           <Label htmlFor="random-state">Random State</Label>
-                          <Input id="random-state" type="number" defaultValue="42" className="mt-2" />
+                          <Input 
+                            id="random-state" 
+                            type="number" 
+                            value={randomState} 
+                            onChange={(e) => setRandomState(Number(e.target.value))}
+                            className="mt-2" 
+                          />
                         </div>
                       </div>
 
                       <div>
                         <Label htmlFor="n-estimators">N° de estimadores</Label>
                         <div className="mt-4">
-                          <Slider defaultValue={[100]} max={500} step={10} />
-                          <div className="text-sm text-muted-foreground mt-2">100 árboles</div>
+                          <Slider 
+                            value={[nEstimators]} 
+                            max={500} 
+                            step={10}
+                            onValueChange={(val) => setNEstimators(val[0])}
+                          />
+                          <div className="text-sm text-muted-foreground mt-2">{nEstimators} árboles</div>
                         </div>
                       </div>
 
                       <div>
                         <Label htmlFor="max-depth">Profundidad máxima</Label>
                         <div className="mt-4">
-                          <Slider defaultValue={[10]} max={50} step={1} />
-                          <div className="text-sm text-muted-foreground mt-2">10 niveles</div>
+                          <Slider 
+                            value={[maxDepth]} 
+                            max={50} 
+                            step={1}
+                            onValueChange={(val) => setMaxDepth(val[0])}
+                          />
+                          <div className="text-sm text-muted-foreground mt-2">{maxDepth} niveles</div>
                         </div>
                       </div>
 
