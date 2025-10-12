@@ -17,6 +17,7 @@ const CleanData = () => {
     nullValues: 45,
     duplicates: 12,
   });
+  const [previewData, setPreviewData] = useState<any[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,6 +31,11 @@ const CleanData = () => {
         nullValues: data.nullValues,
         duplicates: data.duplicates,
       });
+      
+      // Cargar datos de muestra
+      if (data.sampleRows) {
+        setPreviewData(data.sampleRows);
+      }
     }
   }, []);
 
@@ -138,6 +144,45 @@ const CleanData = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
+        {/* Vista previa de datos */}
+        {previewData.length > 0 && (
+          <div className="max-w-6xl mx-auto mb-6">
+            <Card className="p-6 shadow-card">
+              <h3 className="font-semibold mb-4">Datos a limpiar (vista previa)</h3>
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/30">
+                      <tr>
+                        {Object.keys(previewData[0]).map((key) => (
+                          <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border">
+                            {key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.map((row, idx) => (
+                        <tr key={idx} className="border-b border-border hover:bg-muted/20">
+                          {Object.values(row).map((value: any, cellIdx) => (
+                            <td key={cellIdx} className="px-4 py-2">
+                              {value === null ? (
+                                <span className="text-warning italic font-semibold">null</span>
+                              ) : (
+                                value
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Options Panel */}
           <div className="lg:col-span-2">

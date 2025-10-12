@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 const LoadData = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -18,6 +19,19 @@ const LoadData = () => {
     const file = event.target.files?.[0];
     if (file) {
       setUploadedFile(file);
+      
+      // Generar vista previa de datos simulados
+      const sampleRows = [
+        { id: 1, nombre: "Ana García", edad: 28, ciudad: "Madrid", salario: 45000, experiencia: 5 },
+        { id: 2, nombre: "Carlos López", edad: null, ciudad: "Barcelona", salario: 52000, experiencia: 7 },
+        { id: 3, nombre: "María Rodríguez", edad: 35, ciudad: "Valencia", salario: null, experiencia: 10 },
+        { id: 4, nombre: "Juan Martínez", edad: 42, ciudad: "Sevilla", salario: 58000, experiencia: 15 },
+        { id: 5, nombre: "Laura Sánchez", edad: 31, ciudad: "Madrid", salario: 48000, experiencia: 8 },
+        { id: 6, nombre: "Pedro Fernández", edad: 29, ciudad: "Barcelona", salario: 46000, experiencia: 6 },
+      ];
+      
+      setPreviewData(sampleRows);
+      
       toast({
         title: "Archivo cargado",
         description: `${file.name} está listo para procesarse`,
@@ -39,13 +53,24 @@ const LoadData = () => {
     
     // Simular procesamiento de datos
     setTimeout(() => {
+      // Generar datos simulados
+      const sampleRows = [
+        { id: 1, nombre: "Ana García", edad: 28, ciudad: "Madrid", salario: 45000, experiencia: 5 },
+        { id: 2, nombre: "Carlos López", edad: null, ciudad: "Barcelona", salario: 52000, experiencia: 7 },
+        { id: 3, nombre: "María Rodríguez", edad: 35, ciudad: "Valencia", salario: null, experiencia: 10 },
+        { id: 4, nombre: "Juan Martínez", edad: 42, ciudad: "Sevilla", salario: 58000, experiencia: 15 },
+        { id: 5, nombre: "Laura Sánchez", edad: 31, ciudad: "Madrid", salario: 48000, experiencia: 8 },
+        { id: 6, nombre: "Pedro Fernández", edad: 29, ciudad: "Barcelona", salario: 46000, experiencia: 6 },
+      ];
+
       const sampleData = {
         fileName: uploadedFile.name,
         rows: 1000,
-        columns: 15,
+        columns: 6,
         nullValues: 45,
         duplicates: 12,
         timestamp: new Date().toISOString(),
+        sampleRows: sampleRows,
       };
       
       localStorage.setItem('mlPipelineData', JSON.stringify(sampleData));
@@ -128,13 +153,50 @@ const LoadData = () => {
                 </div>
 
                 {uploadedFile && (
-                  <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-success" />
-                    <div className="flex-1">
-                      <p className="font-medium text-success">Archivo cargado exitosamente</p>
-                      <p className="text-sm text-muted-foreground">{uploadedFile.name}</p>
+                  <>
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      <div className="flex-1">
+                        <p className="font-medium text-success">Archivo cargado exitosamente</p>
+                        <p className="text-sm text-muted-foreground">{uploadedFile.name}</p>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Tabla de vista previa */}
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                        <h4 className="font-semibold text-sm">Vista previa de datos (6 filas)</h4>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/30">
+                            <tr>
+                              {previewData.length > 0 && Object.keys(previewData[0]).map((key) => (
+                                <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border">
+                                  {key}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previewData.map((row, idx) => (
+                              <tr key={idx} className="border-b border-border hover:bg-muted/20">
+                                {Object.values(row).map((value: any, cellIdx) => (
+                                  <td key={cellIdx} className="px-4 py-2">
+                                    {value === null ? (
+                                      <span className="text-warning italic">null</span>
+                                    ) : (
+                                      value
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 <div className="flex gap-3 pt-4">
