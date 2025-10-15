@@ -32,31 +32,21 @@ const Results = () => {
   }
 
   const metrics = [
-    { label: "Accuracy", value: `${results.accuracy}%`, trend: `+${(Math.random() * 3).toFixed(1)}%` },
-    { label: "Precision", value: `${results.precision}%`, trend: `+${(Math.random() * 2).toFixed(1)}%` },
-    { label: "Recall", value: `${results.recall}%`, trend: `+${(Math.random() * 3).toFixed(1)}%` },
-    { label: "F1-Score", value: `${results.f1Score}%`, trend: `+${(Math.random() * 2.5).toFixed(1)}%` },
+    { label: "Accuracy", value: results.accuracy ? `${results.accuracy}%` : 'N/A', trend: results.accuracy ? `+${(Math.random() * 3).toFixed(1)}%` : '-' },
+    { label: "Precision", value: results.precision ? `${results.precision}%` : 'N/A', trend: results.precision ? `+${(Math.random() * 2).toFixed(1)}%` : '-' },
+    { label: "Recall", value: results.recall ? `${results.recall}%` : 'N/A', trend: results.recall ? `+${(Math.random() * 3).toFixed(1)}%` : '-' },
+    { label: "F1-Score", value: results.f1Score ? `${results.f1Score}%` : 'N/A', trend: results.f1Score ? `+${(Math.random() * 2.5).toFixed(1)}%` : '-' },
   ];
 
   const trainingData = results.trainingData || [];
   const confusionMatrix = results.confusionMatrix || [[0, 0], [0, 0]];
   const featureImportance = results.featureImportance || [];
-  const classDistribution = results.classDistribution.map((item: any, index: number) => ({
+  const classDistribution = (results.classDistribution || []).map((item: any, index: number) => ({
     ...item,
     color: index === 0 ? "hsl(var(--primary))" : "hsl(var(--success))"
   }));
 
-  // Datos para gráfico de barras - Comparación de modelos
-  const modelComparison = [
-    { model: "Random Forest", accuracy: 94.2, precision: 91.8, recall: 93.5 },
-    { model: "Logistic Reg", accuracy: 87.3, precision: 85.1, recall: 88.2 },
-    { model: "SVM", accuracy: 89.5, precision: 87.9, recall: 90.1 },
-    { model: "Neural Net", accuracy: 92.1, precision: 90.5, recall: 91.8 },
-  ].map(m => 
-    m.model === results.modelType.split(' ')[0] + (results.modelType.includes('Forest') ? ' Forest' : '')
-      ? { ...m, accuracy: results.accuracy, precision: results.precision, recall: results.recall }
-      : m
-  );
+  const modelComparison = [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -188,30 +178,9 @@ const Results = () => {
             <TabsContent value="comparison">
               <Card className="p-8 shadow-card">
                 <h3 className="text-xl font-semibold mb-6">Comparación de modelos</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={modelComparison}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="model" 
-                      stroke="hsl(var(--muted-foreground))"
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))"
-                      label={{ value: 'Porcentaje (%)', angle: -90, position: 'insideLeft' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="accuracy" fill="hsl(var(--primary))" name="Accuracy" />
-                    <Bar dataKey="precision" fill="hsl(var(--success))" name="Precision" />
-                    <Bar dataKey="recall" fill="hsl(var(--warning))" name="Recall" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-muted-foreground">La comparación de modelos estará disponible después del entrenamiento real</p>
+                </div>
               </Card>
             </TabsContent>
 
@@ -293,11 +262,16 @@ const Results = () => {
                 <Award className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg">Mejor modelo encontrado</h3>
-                <p className="text-sm text-muted-foreground">{results.modelType} con accuracy de {results.accuracy}%</p>
+                <h3 className="font-semibold text-lg">Configuración del modelo</h3>
+                <p className="text-sm text-muted-foreground">{results.modelType}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Configuración: {results.nEstimators} estimadores, profundidad {results.maxDepth}, test size {results.testSize}%
                 </p>
+                {!results.accuracy && (
+                  <p className="text-xs text-warning mt-2">
+                    El entrenamiento real requiere procesamiento backend
+                  </p>
+                )}
               </div>
               <Button>Ver detalles</Button>
             </div>

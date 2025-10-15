@@ -12,10 +12,10 @@ const CleanData = () => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isCleaning, setIsCleaning] = useState(false);
   const [dataStats, setDataStats] = useState({
-    rows: 1000,
-    columns: 15,
-    nullValues: 45,
-    duplicates: 12,
+    rows: 0,
+    columns: 0,
+    nullValues: 0,
+    duplicates: 0,
   });
   const [previewData, setPreviewData] = useState<any[]>([]);
   const { toast } = useToast();
@@ -264,29 +264,35 @@ const CleanData = () => {
                   </div>
                 </div>
                 <Separator />
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Calidad de datos</h4>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Completitud</span>
-                        <span className="font-medium">95.5%</span>
+                {dataStats.rows > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Calidad de datos</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Completitud</span>
+                          <span className="font-medium">
+                            {((1 - dataStats.nullValues / (dataStats.rows * dataStats.columns)) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-success" style={{ width: `${((1 - dataStats.nullValues / (dataStats.rows * dataStats.columns)) * 100)}%` }} />
+                        </div>
                       </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-success" style={{ width: "95.5%" }} />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Unicidad</span>
-                        <span className="font-medium">98.8%</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-success" style={{ width: "98.8%" }} />
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Unicidad</span>
+                          <span className="font-medium">
+                            {((1 - dataStats.duplicates / dataStats.rows) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-success" style={{ width: `${((1 - dataStats.duplicates / dataStats.rows) * 100)}%` }} />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
 

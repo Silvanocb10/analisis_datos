@@ -49,78 +49,44 @@ const TrainModels = () => {
     });
 
     setTimeout(() => {
-      // Generate dynamic results based on model configuration
-      const baseAccuracy = {
-        "Random Forest Classifier": 94.2,
-        "Logistic Regression": 87.3,
-        "Support Vector Machine (SVM)": 89.5,
-        "Gradient Boosting": 92.1,
-        "K-Nearest Neighbors": 85.8,
-        "Decision Tree": 83.4,
-      }[modelType] || 90;
+      // Obtener datos reales del CSV
+      const storedData = localStorage.getItem('mlPipelineData');
+      if (!storedData) {
+        toast({
+          title: "Error",
+          description: "No hay datos cargados. Por favor, carga un archivo CSV primero.",
+          variant: "destructive",
+        });
+        setIsTraining(false);
+        return;
+      }
 
-      const variation = (Math.random() - 0.5) * 3;
-      const accuracy = +(baseAccuracy + variation).toFixed(1);
-      const precision = +(accuracy - Math.random() * 3).toFixed(1);
-      const recall = +(accuracy - Math.random() * 2.5).toFixed(1);
-      const f1Score = +((2 * precision * recall) / (precision + recall)).toFixed(1);
-
-      // Generate training evolution data
-      const trainingData = Array.from({ length: 5 }, (_, i) => ({
-        epoch: i + 1,
-        train: +((0.75 + i * 0.05 + Math.random() * 0.02) * 100).toFixed(1),
-        validation: +((0.72 + i * 0.05 + Math.random() * 0.02) * 100).toFixed(1),
-      }));
-
-      // Generate confusion matrix
-      const total = 1000;
-      const truePositives = Math.floor((accuracy / 100) * (total / 2));
-      const trueNegatives = Math.floor((accuracy / 100) * (total / 2));
-      const falsePositives = Math.floor((total / 2) - trueNegatives);
-      const falseNegatives = Math.floor((total / 2) - truePositives);
-
-      const confusionMatrix = [
-        [trueNegatives, falsePositives],
-        [falseNegatives, truePositives],
-      ];
-
-      // Generate feature importance based on model type
-      const featureImportance = [
-        { name: "income", importance: 28 + (Math.random() * 10 - 5) },
-        { name: "age", importance: 22 + (Math.random() * 10 - 5) },
-        { name: "education", importance: 18 + (Math.random() * 10 - 5) },
-        { name: "experience", importance: 15 + (Math.random() * 10 - 5) },
-        { name: "location", importance: 11 + (Math.random() * 10 - 5) },
-        { name: "skills", importance: 6 + (Math.random() * 10 - 5) },
-      ].map(f => ({ ...f, importance: +f.importance.toFixed(1) }))
-        .sort((a, b) => b.importance - a.importance);
-
+      // Por ahora, solo guardamos la configuración del modelo
+      // El procesamiento real requerirá backend
       const modelResults = {
         modelType,
-        accuracy,
-        precision,
-        recall,
-        f1Score,
         testSize,
         randomState,
         nEstimators,
         maxDepth,
-        trainingTime: (2 + Math.random() * 2).toFixed(1) + "s",
         timestamp: new Date().toISOString(),
-        trainingData,
-        confusionMatrix,
-        featureImportance,
-        classDistribution: [
-          { name: "Clase 0", value: trueNegatives + falsePositives },
-          { name: "Clase 1", value: truePositives + falseNegatives },
-        ],
+        // Los resultados reales vendrán del procesamiento del CSV
+        accuracy: null,
+        precision: null,
+        recall: null,
+        f1Score: null,
+        trainingTime: null,
+        trainingData: [],
+        confusionMatrix: [],
+        featureImportance: [],
+        classDistribution: [],
       };
 
       localStorage.setItem('mlPipelineResults', JSON.stringify(modelResults));
 
       toast({
-        title: "Entrenamiento completado",
-        description: `${modelType} - Accuracy: ${accuracy}%`,
+        title: "Configuración guardada",
+        description: `${modelType} - La configuración se ha guardado. El entrenamiento real requiere backend.`,
       });
 
       setIsTraining(false);
