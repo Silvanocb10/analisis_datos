@@ -19,18 +19,7 @@ const LoadData = () => {
     const file = event.target.files?.[0];
     if (file) {
       setUploadedFile(file);
-      
-      // Generar vista previa de datos simulados
-      const sampleRows = [
-        { id: 1, nombre: "Ana García", edad: 28, ciudad: "Madrid", salario: 45000, experiencia: 5 },
-        { id: 2, nombre: "Carlos López", edad: null, ciudad: "Barcelona", salario: 52000, experiencia: 7 },
-        { id: 3, nombre: "María Rodríguez", edad: 35, ciudad: "Valencia", salario: null, experiencia: 10 },
-        { id: 4, nombre: "Juan Martínez", edad: 42, ciudad: "Sevilla", salario: 58000, experiencia: 15 },
-        { id: 5, nombre: "Laura Sánchez", edad: 31, ciudad: "Madrid", salario: 48000, experiencia: 8 },
-        { id: 6, nombre: "Pedro Fernández", edad: 29, ciudad: "Barcelona", salario: 46000, experiencia: 6 },
-      ];
-      
-      setPreviewData(sampleRows);
+      setPreviewData([]);
       
       toast({
         title: "Archivo cargado",
@@ -53,16 +42,6 @@ const LoadData = () => {
     
     // Simular procesamiento de datos
     setTimeout(() => {
-      // Generar datos simulados
-      const sampleRows = [
-        { id: 1, nombre: "Ana García", edad: 28, ciudad: "Madrid", salario: 45000, experiencia: 5 },
-        { id: 2, nombre: "Carlos López", edad: null, ciudad: "Barcelona", salario: 52000, experiencia: 7 },
-        { id: 3, nombre: "María Rodríguez", edad: 35, ciudad: "Valencia", salario: null, experiencia: 10 },
-        { id: 4, nombre: "Juan Martínez", edad: 42, ciudad: "Sevilla", salario: 58000, experiencia: 15 },
-        { id: 5, nombre: "Laura Sánchez", edad: 31, ciudad: "Madrid", salario: 48000, experiencia: 8 },
-        { id: 6, nombre: "Pedro Fernández", edad: 29, ciudad: "Barcelona", salario: 46000, experiencia: 6 },
-      ];
-
       const sampleData = {
         fileName: uploadedFile.name,
         rows: 1000,
@@ -70,7 +49,7 @@ const LoadData = () => {
         nullValues: 45,
         duplicates: 12,
         timestamp: new Date().toISOString(),
-        sampleRows: sampleRows,
+        sampleRows: [],
       };
       
       localStorage.setItem('mlPipelineData', JSON.stringify(sampleData));
