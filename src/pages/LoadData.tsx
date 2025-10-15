@@ -28,6 +28,40 @@ const LoadData = () => {
     }
   };
 
+  const handlePreview = () => {
+    if (!uploadedFile) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) return;
+      
+      // Parse CSV header
+      const headers = lines[0].split(',').map(h => h.trim());
+      
+      // Parse first 6 data rows
+      const rows = lines.slice(1, 7).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || null;
+        });
+        return row;
+      });
+      
+      setPreviewData(rows);
+      
+      toast({
+        title: "Vista previa generada",
+        description: `Mostrando ${rows.length} filas de ${lines.length - 1} totales`,
+      });
+    };
+    
+    reader.readAsText(uploadedFile);
+  };
+
   const handleProcessData = () => {
     if (!uploadedFile) {
       toast({
@@ -132,50 +166,49 @@ const LoadData = () => {
                 </div>
 
                 {uploadedFile && (
-                  <>
-                    <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      <div className="flex-1">
-                        <p className="font-medium text-success">Archivo cargado exitosamente</p>
-                        <p className="text-sm text-muted-foreground">{uploadedFile.name}</p>
-                      </div>
+                  <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-success" />
+                    <div className="flex-1">
+                      <p className="font-medium text-success">Archivo cargado exitosamente</p>
+                      <p className="text-sm text-muted-foreground">{uploadedFile.name}</p>
                     </div>
+                  </div>
+                )}
 
-                    {/* Tabla de vista previa */}
-                    <div className="border border-border rounded-lg overflow-hidden">
-                      <div className="bg-muted/50 px-4 py-2 border-b border-border">
-                        <h4 className="font-semibold text-sm">Vista previa de datos (6 filas)</h4>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/30">
-                            <tr>
-                              {previewData.length > 0 && Object.keys(previewData[0]).map((key) => (
-                                <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border">
-                                  {key}
-                                </th>
+                {previewData.length > 0 && (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                      <h4 className="font-semibold text-sm">Vista previa de datos (6 filas)</h4>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30">
+                          <tr>
+                            {Object.keys(previewData[0]).map((key) => (
+                              <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border">
+                                {key}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewData.map((row, idx) => (
+                            <tr key={idx} className="border-b border-border hover:bg-muted/20">
+                              {Object.values(row).map((value: any, cellIdx) => (
+                                <td key={cellIdx} className="px-4 py-2">
+                                  {value === null ? (
+                                    <span className="text-warning italic">null</span>
+                                  ) : (
+                                    value
+                                  )}
+                                </td>
                               ))}
                             </tr>
-                          </thead>
-                          <tbody>
-                            {previewData.map((row, idx) => (
-                              <tr key={idx} className="border-b border-border hover:bg-muted/20">
-                                {Object.values(row).map((value: any, cellIdx) => (
-                                  <td key={cellIdx} className="px-4 py-2">
-                                    {value === null ? (
-                                      <span className="text-warning italic">null</span>
-                                    ) : (
-                                      value
-                                    )}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 <div className="flex gap-3 pt-4">
@@ -186,7 +219,7 @@ const LoadData = () => {
                   >
                     {isProcessing ? "Procesando..." : "Procesar datos"}
                   </Button>
-                  <Button variant="outline" disabled={!uploadedFile}>Vista previa</Button>
+                  <Button variant="outline" disabled={!uploadedFile} onClick={handlePreview}>Vista previa</Button>
                 </div>
               </div>
             </Card>
