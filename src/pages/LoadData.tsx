@@ -74,30 +74,71 @@ const LoadData = () => {
 
     setIsProcessing(true);
     
-    // Simular procesamiento de datos
-    setTimeout(() => {
-      const sampleData = {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Parse CSV
+      const headers = lines[0].split(',').map(h => h.trim());
+      const allRows = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+          const value = values[index] || null;
+          row[header] = value;
+        });
+        return row;
+      });
+      
+      // Calculate statistics
+      let nullValues = 0;
+      let duplicates = 0;
+      
+      allRows.forEach(row => {
+        Object.values(row).forEach(value => {
+          if (value === null || value === '') nullValues++;
+        });
+      });
+      
+      // Detect duplicates (simple check on first column)
+      const seen = new Set();
+      allRows.forEach(row => {
+        const key = JSON.stringify(row);
+        if (seen.has(key)) duplicates++;
+        seen.add(key);
+      });
+      
+      const processedData = {
         fileName: uploadedFile.name,
-        rows: 1000,
-        columns: 6,
-        nullValues: 45,
-        duplicates: 12,
+        rows: allRows.length,
+        columns: headers.length,
+        nullValues,
+        duplicates,
         timestamp: new Date().toISOString(),
-        sampleRows: [],
+        sampleRows: allRows.slice(0, 10),
+        allData: allRows,
+        headers: headers,
       };
       
-      localStorage.setItem('mlPipelineData', JSON.stringify(sampleData));
+      localStorage.setItem('mlPipelineData', JSON.stringify(processedData));
       
       toast({
         title: "Datos procesados exitosamente",
-        description: `${sampleData.rows} filas y ${sampleData.columns} columnas cargadas`,
+        description: `${processedData.rows} filas y ${processedData.columns} columnas cargadas`,
       });
       
       setIsProcessing(false);
       
-      // Navegar a la siguiente etapa
       setTimeout(() => navigate('/clean-data'), 1000);
-    }, 2000);
+    };
+    
+    reader.readAsText(uploadedFile);
   };
 
   return (

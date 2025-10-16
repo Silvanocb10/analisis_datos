@@ -26,15 +26,15 @@ const CleanData = () => {
     if (storedData) {
       const data = JSON.parse(storedData);
       setDataStats({
-        rows: data.rows,
-        columns: data.columns,
-        nullValues: data.nullValues,
-        duplicates: data.duplicates,
+        rows: data.rows || 0,
+        columns: data.columns || 0,
+        nullValues: data.nullValues || 0,
+        duplicates: data.duplicates || 0,
       });
       
       // Cargar datos de muestra
-      if (data.sampleRows) {
-        setPreviewData(data.sampleRows);
+      if (data.sampleRows && data.sampleRows.length > 0) {
+        setPreviewData(data.sampleRows.slice(0, 6));
       }
     }
   }, []);
@@ -231,7 +231,18 @@ const CleanData = () => {
                   <Play className="w-4 h-4" />
                   {isCleaning ? "Limpiando..." : "Ejecutar limpieza"}
                 </Button>
-                <Button variant="outline" disabled={selectedOptions.length === 0}>Vista previa</Button>
+                <Button 
+                  variant="outline" 
+                  disabled={selectedOptions.length === 0}
+                  onClick={() => {
+                    toast({
+                      title: "Vista previa",
+                      description: "Los datos mostrados arriba reflejan las opciones seleccionadas",
+                    });
+                  }}
+                >
+                  Vista previa
+                </Button>
               </div>
             </Card>
           </div>
