@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Brain, Cpu, Zap, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,19 @@ const TrainModels = () => {
   const [maxDepth, setMaxDepth] = useState(10);
   const [features, setFeatures] = useState("Units Sold, Unit Price, Region, Payment Method");
   const [target, setTarget] = useState("Total Revenue");
+  const [maxRows, setMaxRows] = useState(1000);
+  const [availableRows, setAvailableRows] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('mlPipelineData');
+    if (storedData) {
+      const data = JSON.parse(storedData);
+      setAvailableRows(data.rows || 0);
+      setMaxRows(Math.min(1000, data.rows || 0));
+    }
+  }, []);
 
   const handleStartTraining = () => {
     setIsTraining(true);
@@ -64,7 +75,7 @@ const TrainModels = () => {
       }
 
       const data = JSON.parse(storedData);
-      const allData = data.allData || [];
+      const allData = (data.allData || []).slice(0, maxRows); // Usar solo las filas especificadas
       
       // Generar resultados simulados basados en el dataset real
       const featureList = features.split(',').map(f => f.trim()).filter(f => f);
@@ -120,6 +131,7 @@ const TrainModels = () => {
         maxDepth,
         features,
         target,
+        maxRows,
         timestamp: new Date().toISOString(),
         accuracy: parseFloat(accuracy.toFixed(2)),
         precision: parseFloat(precision.toFixed(2)),
@@ -208,6 +220,23 @@ const TrainModels = () => {
                           <option>K-Nearest Neighbors</option>
                           <option>Decision Tree</option>
                         </select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="max-rows">Número de filas a usar</Label>
+                        <div className="mt-4">
+                          <Slider 
+                            value={[maxRows]} 
+                            max={availableRows || 1000} 
+                            min={100}
+                            step={50}
+                            onValueChange={(val) => setMaxRows(val[0])}
+                          />
+                          <div className="flex justify-between items-center text-sm text-muted-foreground mt-2">
+                            <span>{maxRows.toLocaleString()} filas</span>
+                            <span className="text-xs">Disponibles: {availableRows.toLocaleString()}</span>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
