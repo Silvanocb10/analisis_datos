@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, BarChart3, TrendingUp, Award, Download } from "lucide-react";
+import { ArrowLeft, BarChart3, TrendingUp, Award, Download, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const Results = () => {
   const [results, setResults] = useState<any>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     const savedResults = localStorage.getItem('mlPipelineResults');
@@ -267,15 +269,102 @@ const Results = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   Configuración: {results.nEstimators} estimadores, profundidad {results.maxDepth}, test size {results.testSize}%
                 </p>
-                {!results.accuracy && (
-                  <p className="text-xs text-warning mt-2">
-                    El entrenamiento real requiere procesamiento backend
+                {results.accuracy && (
+                  <p className="text-xs text-success mt-2">
+                    Accuracy: {results.accuracy}% • Tiempo: {results.trainingTime}
                   </p>
                 )}
               </div>
-              <Button>Ver detalles</Button>
+              <Button onClick={() => setShowDetails(true)}>Ver detalles</Button>
             </div>
           </Card>
+
+          {/* Details Dialog */}
+          <Dialog open={showDetails} onOpenChange={setShowDetails}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Detalles del modelo - {results.modelType}</DialogTitle>
+                <DialogDescription>
+                  Información completa sobre el entrenamiento y configuración del modelo
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6 py-4">
+                <div>
+                  <h4 className="font-semibold mb-3">Hiperparámetros</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Tipo de modelo:</span>
+                      <span className="font-medium">{results.modelType}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">N° estimadores:</span>
+                      <span className="font-medium">{results.nEstimators}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Profundidad máx:</span>
+                      <span className="font-medium">{results.maxDepth}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Test size:</span>
+                      <span className="font-medium">{results.testSize}%</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Random state:</span>
+                      <span className="font-medium">{results.randomState}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Tiempo:</span>
+                      <span className="font-medium">{results.trainingTime}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">Métricas de rendimiento</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between p-2 bg-success/10 rounded">
+                      <span className="text-muted-foreground">Accuracy:</span>
+                      <span className="font-semibold text-success">{results.accuracy}%</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-success/10 rounded">
+                      <span className="text-muted-foreground">Precision:</span>
+                      <span className="font-semibold text-success">{results.precision}%</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-success/10 rounded">
+                      <span className="text-muted-foreground">Recall:</span>
+                      <span className="font-semibold text-success">{results.recall}%</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-success/10 rounded">
+                      <span className="text-muted-foreground">F1-Score:</span>
+                      <span className="font-semibold text-success">{results.f1Score}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">Variables del modelo</h4>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-muted/50 rounded">
+                      <span className="text-sm text-muted-foreground block mb-1">Features utilizados:</span>
+                      <span className="text-sm font-medium">{results.features}</span>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded">
+                      <span className="text-sm text-muted-foreground block mb-1">Variable objetivo:</span>
+                      <span className="text-sm font-medium">{results.target}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Información adicional</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Fecha de entrenamiento: {new Date(results.timestamp).toLocaleString('es-ES')}
+                  </p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
