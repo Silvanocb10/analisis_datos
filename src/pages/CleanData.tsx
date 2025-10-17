@@ -60,18 +60,42 @@ const CleanData = () => {
     setIsCleaning(true);
 
     setTimeout(() => {
+      const storedData = JSON.parse(localStorage.getItem('mlPipelineData') || '{}');
+      let cleanedData = [...(storedData.allData || [])];
+      
+      // Aplicar limpieza según opciones seleccionadas
+      if (selectedOptions.includes('remove-na')) {
+        cleanedData = cleanedData.filter(row => 
+          Object.values(row).every(val => val !== null && val !== '' && val !== undefined)
+        );
+      }
+      
+      if (selectedOptions.includes('remove-duplicates')) {
+        const uniqueRows = new Set();
+        cleanedData = cleanedData.filter(row => {
+          const rowStr = JSON.stringify(row);
+          if (uniqueRows.has(rowStr)) return false;
+          uniqueRows.add(rowStr);
+          return true;
+        });
+      }
+      
+      // Actualizar vista previa con datos limpios
+      setPreviewData(cleanedData.slice(0, 6));
+      
       const cleanedStats = {
-        ...dataStats,
-        nullValues: Math.max(0, dataStats.nullValues - 30),
+        rows: cleanedData.length,
+        columns: storedData.columns || 0,
+        nullValues: 0,
         duplicates: 0,
-        rows: dataStats.rows - dataStats.duplicates,
       };
 
       setDataStats(cleanedStats);
       
-      const storedData = JSON.parse(localStorage.getItem('mlPipelineData') || '{}');
       localStorage.setItem('mlPipelineData', JSON.stringify({
         ...storedData,
+        allData: cleanedData,
+        sampleRows: cleanedData.slice(0, 10),
         ...cleanedStats,
         cleaned: true,
         cleaningMethods: selectedOptions,
@@ -79,7 +103,7 @@ const CleanData = () => {
 
       toast({
         title: "Limpieza completada",
-        description: `Dataset limpio: ${cleanedStats.rows} filas, ${cleanedStats.nullValues} valores nulos restantes`,
+        description: `Dataset limpio: ${cleanedStats.rows} filas procesadas correctamente`,
       });
 
       setIsCleaning(false);
