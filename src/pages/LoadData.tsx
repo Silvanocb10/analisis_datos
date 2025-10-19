@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { Upload, Database, FileText, ArrowLeft, CheckCircle } from "lucide-react";
+import { Upload, Database, FileText, ArrowLeft, CheckCircle, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 
 const LoadData = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
+  const [allPreviewData, setAllPreviewData] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -41,8 +44,8 @@ const LoadData = () => {
       // Parse CSV header
       const headers = lines[0].split(',').map(h => h.trim());
       
-      // Parse first 6 data rows
-      const rows = lines.slice(1, 7).map(line => {
+      // Parse all data rows for search functionality
+      const rows = lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.trim());
         const row: any = {};
         headers.forEach((header, index) => {
@@ -51,15 +54,44 @@ const LoadData = () => {
         return row;
       });
       
-      setPreviewData(rows);
+      setAllPreviewData(rows);
+      setPreviewData(rows.slice(0, 50)); // Show first 50 rows initially
+      setSearchQuery("");
       
       toast({
         title: "Vista previa generada",
-        description: `Mostrando ${rows.length} filas de ${lines.length - 1} totales`,
+        description: `Cargados ${rows.length} registros`,
       });
     };
     
     reader.readAsText(uploadedFile);
+  };
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      setPreviewData(allPreviewData.slice(0, 50));
+      return;
+    }
+
+    const filtered = allPreviewData.filter(row => {
+      return Object.values(row).some(value => 
+        value !== null && 
+        value.toString().toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+
+    setPreviewData(filtered);
+    
+    toast({
+      title: "Búsqueda completada",
+      description: `${filtered.length} coincidencias encontradas`,
+    });
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   const handleProcessData = () => {
@@ -218,37 +250,56 @@ const LoadData = () => {
 
                 {previewData.length > 0 && (
                   <div className="border border-border rounded-lg overflow-hidden">
-                    <div className="bg-muted/50 px-4 py-2 border-b border-border">
-                      <h4 className="font-semibold text-sm">Vista previa de datos (6 filas)</h4>
+                    <div className="bg-muted/50 px-4 py-3 border-b border-border">
+                      <div className="flex items-center justify-between gap-4">
+                        <h4 className="font-semibold text-sm">Vista previa de datos ({previewData.length} registros)</h4>
+                        <div className="flex items-center gap-2 flex-1 max-w-md">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar en los datos..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              onKeyPress={handleSearchKeyPress}
+                              className="pl-9"
+                            />
+                          </div>
+                          <Button size="sm" onClick={handleSearch}>
+                            Buscar
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/30">
-                          <tr>
-                            {Object.keys(previewData[0]).map((key) => (
-                              <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border">
-                                {key}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {previewData.map((row, idx) => (
-                            <tr key={idx} className="border-b border-border hover:bg-muted/20">
-                              {Object.values(row).map((value: any, cellIdx) => (
-                                <td key={cellIdx} className="px-4 py-2">
-                                  {value === null ? (
-                                    <span className="text-warning italic">null</span>
-                                  ) : (
-                                    value
-                                  )}
-                                </td>
+                    <ScrollArea className="h-[400px]">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/30 sticky top-0 z-10">
+                            <tr>
+                              {Object.keys(previewData[0]).map((key) => (
+                                <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border bg-muted/30">
+                                  {key}
+                                </th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {previewData.map((row, idx) => (
+                              <tr key={idx} className="border-b border-border hover:bg-muted/20">
+                                {Object.values(row).map((value: any, cellIdx) => (
+                                  <td key={cellIdx} className="px-4 py-2">
+                                    {value === null ? (
+                                      <span className="text-warning italic">null</span>
+                                    ) : (
+                                      value
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </ScrollArea>
                   </div>
                 )}
 
