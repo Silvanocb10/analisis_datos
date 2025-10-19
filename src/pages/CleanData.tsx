@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const CleanData = () => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -240,13 +240,13 @@ const CleanData = () => {
               </div>
 
               <div className="border border-border rounded-lg overflow-hidden">
-                <ScrollArea className="h-[400px]">
-                  <div className="overflow-x-auto">
+                <ScrollArea className="h-[400px] w-full">
+                  <div className="min-w-full">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/30 sticky top-0 z-10">
                         <tr>
                           {Object.keys(previewData[0]).map((key) => (
-                            <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border bg-muted/30">
+                            <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border bg-muted/30 whitespace-nowrap">
                               {key}
                             </th>
                           ))}
@@ -261,7 +261,7 @@ const CleanData = () => {
                               className={`border-b border-border hover:bg-muted/20 ${isRemoved ? 'bg-destructive/5' : ''}`}
                             >
                               {Object.values(row).map((value: any, cellIdx) => (
-                                <td key={cellIdx} className={`px-4 py-2 ${isRemoved ? 'line-through text-muted-foreground opacity-50' : ''}`}>
+                                <td key={cellIdx} className={`px-4 py-2 whitespace-nowrap ${isRemoved ? 'line-through text-muted-foreground opacity-50' : ''}`}>
                                   {value === null ? (
                                     <span className="text-warning italic font-semibold">null</span>
                                   ) : (
@@ -275,6 +275,7 @@ const CleanData = () => {
                       </tbody>
                     </table>
                   </div>
+                  <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
             </Card>
