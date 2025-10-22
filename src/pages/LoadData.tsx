@@ -1,20 +1,22 @@
 import { useState } from "react";
-import { Upload, Database, FileText, ArrowLeft, CheckCircle, Search } from "lucide-react";
+import { Upload, Database, FileText, ArrowLeft, CheckCircle, Search, Save } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import EditableDataGrid, { ColumnSchema } from "@/components/EditableDataGrid";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoadData = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [allPreviewData, setAllPreviewData] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [columnSchema, setColumnSchema] = useState<ColumnSchema[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -44,7 +46,7 @@ const LoadData = () => {
       // Parse CSV header
       const headers = lines[0].split(',').map(h => h.trim());
       
-      // Parse all data rows for search functionality
+      // Parse all data rows
       const rows = lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.trim());
         const row: any = {};
@@ -55,8 +57,8 @@ const LoadData = () => {
       });
       
       setAllPreviewData(rows);
-      setPreviewData(rows.slice(0, 50)); // Show first 50 rows initially
-      setSearchQuery("");
+      setPreviewData(rows);
+      setShowPreview(true);
       
       toast({
         title: "Vista previa generada",
@@ -67,111 +69,66 @@ const LoadData = () => {
     reader.readAsText(uploadedFile);
   };
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      setPreviewData(allPreviewData.slice(0, 50));
-      return;
-    }
-
-    const filtered = allPreviewData.filter(row => {
-      return Object.values(row).some(value => 
-        value !== null && 
-        value.toString().toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    });
-
-    setPreviewData(filtered);
-    
-    toast({
-      title: "Búsqueda completada",
-      description: `${filtered.length} coincidencias encontradas`,
-    });
-  };
-
-  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
-  const handleProcessData = () => {
-    if (!uploadedFile) {
+  const handleSaveToSupabase = async () => {
+    if (previewData.length === 0) {
       toast({
         title: "Error",
-        description: "Por favor carga un archivo primero",
+        description: "No hay datos para guardar",
         variant: "destructive",
       });
       return;
     }
 
     setIsProcessing(true);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n').filter(line => line.trim());
-      
-      if (lines.length === 0) {
-        setIsProcessing(false);
-        return;
-      }
-      
-      // Parse CSV
-      const headers = lines[0].split(',').map(h => h.trim());
-      const allRows = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        const row: any = {};
-        headers.forEach((header, index) => {
-          const value = values[index] || null;
-          row[header] = value;
+
+    try {
+      // Aplicar el esquema modificado a los datos
+      const visibleColumns = columnSchema.filter(col => col.visible);
+      const transformedData = previewData.map(row => {
+        const newRow: any = {};
+        visibleColumns.forEach(col => {
+          newRow[col.name] = row[col.originalName];
         });
-        return row;
+        return newRow;
       });
-      
-      // Calculate statistics
-      let nullValues = 0;
-      let duplicates = 0;
-      
-      allRows.forEach(row => {
-        Object.values(row).forEach(value => {
-          if (value === null || value === '') nullValues++;
-        });
-      });
-      
-      // Detect duplicates (simple check on first column)
-      const seen = new Set();
-      allRows.forEach(row => {
-        const key = JSON.stringify(row);
-        if (seen.has(key)) duplicates++;
-        seen.add(key);
-      });
-      
+
+      // Guardar en la tabla 'dataset'
+      const { error } = await supabase
+        .from('dataset')
+        .insert(transformedData);
+
+      if (error) throw error;
+
+      // Guardar en localStorage para compatibilidad con el flujo actual
       const processedData = {
-        fileName: uploadedFile.name,
-        rows: allRows.length,
-        columns: headers.length,
-        nullValues,
-        duplicates,
+        fileName: uploadedFile?.name,
+        rows: transformedData.length,
+        columns: visibleColumns.length,
         timestamp: new Date().toISOString(),
-        sampleRows: allRows.slice(0, 10),
-        allData: allRows,
-        headers: headers,
+        allData: transformedData,
+        headers: visibleColumns.map(col => col.name),
+        schema: columnSchema,
       };
-      
+
       localStorage.setItem('mlPipelineData', JSON.stringify(processedData));
-      
+
       toast({
-        title: "Datos procesados exitosamente",
-        description: `${processedData.rows} filas y ${processedData.columns} columnas cargadas`,
+        title: "Datos guardados exitosamente",
+        description: `${transformedData.length} registros guardados en Supabase`,
       });
-      
-      setIsProcessing(false);
-      
+
       setTimeout(() => navigate('/clean-data'), 1000);
-    };
-    
-    reader.readAsText(uploadedFile);
+    } catch (error: any) {
+      toast({
+        title: "Error al guardar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -248,70 +205,32 @@ const LoadData = () => {
                   </div>
                 )}
 
-                {previewData.length > 0 && (
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <div className="bg-muted/50 px-4 py-3 border-b border-border">
-                      <div className="flex items-center justify-between gap-4">
-                        <h4 className="font-semibold text-sm">Vista previa de datos ({previewData.length} registros)</h4>
-                        <div className="flex items-center gap-2 flex-1 max-w-md">
-                          <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Buscar en los datos..."
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              onKeyPress={handleSearchKeyPress}
-                              className="pl-9"
-                            />
-                          </div>
-                          <Button size="sm" onClick={handleSearch}>
-                            Buscar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    <ScrollArea className="h-[400px]">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/30 sticky top-0 z-10">
-                            <tr>
-                              {Object.keys(previewData[0]).map((key) => (
-                                <th key={key} className="px-4 py-2 text-left font-medium text-muted-foreground border-b border-border bg-muted/30">
-                                  {key}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {previewData.map((row, idx) => (
-                              <tr key={idx} className="border-b border-border hover:bg-muted/20">
-                                {Object.values(row).map((value: any, cellIdx) => (
-                                  <td key={cellIdx} className="px-4 py-2">
-                                    {value === null ? (
-                                      <span className="text-warning italic">null</span>
-                                    ) : (
-                                      value
-                                    )}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </ScrollArea>
-                  </div>
+                {showPreview && previewData.length > 0 && (
+                  <EditableDataGrid
+                    data={previewData}
+                    onSchemaChange={setColumnSchema}
+                  />
                 )}
 
                 <div className="flex gap-3 pt-4">
-                  <Button 
-                    className="flex-1" 
-                    onClick={handleProcessData}
-                    disabled={!uploadedFile || isProcessing}
-                  >
-                    {isProcessing ? "Procesando..." : "Procesar datos"}
-                  </Button>
-                  <Button variant="outline" disabled={!uploadedFile} onClick={handlePreview}>Vista previa</Button>
+                  {!showPreview ? (
+                    <Button 
+                      className="flex-1" 
+                      onClick={handlePreview}
+                      disabled={!uploadedFile}
+                    >
+                      Vista previa
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="flex-1 gap-2" 
+                      onClick={handleSaveToSupabase}
+                      disabled={isProcessing}
+                    >
+                      <Save className="w-4 h-4" />
+                      {isProcessing ? "Guardando..." : "Guardar en Supabase y Continuar"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card>

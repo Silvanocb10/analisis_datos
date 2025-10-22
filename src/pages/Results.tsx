@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, BarChart3, TrendingUp, Award, Download, X } from "lucide-react";
+import { ArrowLeft, BarChart3, TrendingUp, Award, Download, X, Database } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,10 +7,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const Results = () => {
   const [results, setResults] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [datasetData, setDatasetData] = useState<any[]>([]);
+  const [datosEliminadosData, setDatosEliminadosData] = useState<any[]>([]);
+  const [datosLimpiosData, setDatosLimpiosData] = useState<any[]>([]);
+  const [modeloEntrenadoData, setModeloEntrenadoData] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -18,7 +32,26 @@ const Results = () => {
     if (savedResults) {
       setResults(JSON.parse(savedResults));
     }
+    loadSupabaseData();
   }, []);
+
+  const loadSupabaseData = async () => {
+    try {
+      const [dataset, eliminados, limpios, modelo] = await Promise.all([
+        supabase.from('dataset').select('*').limit(100),
+        supabase.from('datos_eliminados').select('*').limit(100),
+        supabase.from('datos_limpios').select('*').limit(100),
+        supabase.from('modelo_entrenado').select('*').limit(100),
+      ]);
+
+      if (dataset.data) setDatasetData(dataset.data);
+      if (eliminados.data) setDatosEliminadosData(eliminados.data);
+      if (limpios.data) setDatosLimpiosData(limpios.data);
+      if (modelo.data) setModeloEntrenadoData(modelo.data);
+    } catch (error: any) {
+      console.error('Error cargando datos de Supabase:', error);
+    }
+  };
 
   if (!results) {
     return (
@@ -143,12 +176,16 @@ const Results = () => {
           </div>
 
           <Tabs defaultValue="metrics" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-9 gap-1">
               <TabsTrigger value="metrics">Métricas</TabsTrigger>
               <TabsTrigger value="training">Entrenamiento</TabsTrigger>
               <TabsTrigger value="comparison">Comparación</TabsTrigger>
-              <TabsTrigger value="confusion">Matriz confusión</TabsTrigger>
+              <TabsTrigger value="confusion">Matriz</TabsTrigger>
               <TabsTrigger value="feature">Features</TabsTrigger>
+              <TabsTrigger value="dataset">Dataset</TabsTrigger>
+              <TabsTrigger value="eliminados">Eliminados</TabsTrigger>
+              <TabsTrigger value="limpios">Limpios</TabsTrigger>
+              <TabsTrigger value="modelo">Modelo</TabsTrigger>
             </TabsList>
 
             <TabsContent value="metrics">
@@ -325,6 +362,174 @@ const Results = () => {
                     <Bar dataKey="importance" fill="hsl(var(--primary))" name="Importancia" />
                   </BarChart>
                 </ResponsiveContainer>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="dataset">
+              <Card className="p-8 shadow-card">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Dataset Original
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{datasetData.length} registros</p>
+                </div>
+                {datasetData.length > 0 ? (
+                  <ScrollArea className="h-[500px] w-full rounded-md border">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                        <TableRow>
+                          {Object.keys(datasetData[0]).map((key) => (
+                            <TableHead key={key} className="whitespace-nowrap">{key}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {datasetData.map((row, idx) => (
+                          <TableRow key={idx}>
+                            {Object.values(row).map((value: any, cellIdx) => (
+                              <TableCell key={cellIdx} className="whitespace-nowrap">
+                                {value === null ? <span className="text-warning italic">null</span> : String(value)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay datos en la tabla dataset</p>
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="eliminados">
+              <Card className="p-8 shadow-card">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Datos Eliminados
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{datosEliminadosData.length} registros</p>
+                </div>
+                {datosEliminadosData.length > 0 ? (
+                  <ScrollArea className="h-[500px] w-full rounded-md border">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                        <TableRow>
+                          {Object.keys(datosEliminadosData[0]).map((key) => (
+                            <TableHead key={key} className="whitespace-nowrap">{key}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {datosEliminadosData.map((row, idx) => (
+                          <TableRow key={idx} className="bg-destructive/5">
+                            {Object.values(row).map((value: any, cellIdx) => (
+                              <TableCell key={cellIdx} className="whitespace-nowrap">
+                                {value === null ? <span className="text-warning italic">null</span> : String(value)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay datos eliminados</p>
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="limpios">
+              <Card className="p-8 shadow-card">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Datos Limpios
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{datosLimpiosData.length} registros</p>
+                </div>
+                {datosLimpiosData.length > 0 ? (
+                  <ScrollArea className="h-[500px] w-full rounded-md border">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                        <TableRow>
+                          {Object.keys(datosLimpiosData[0]).map((key) => (
+                            <TableHead key={key} className="whitespace-nowrap">{key}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {datosLimpiosData.map((row, idx) => (
+                          <TableRow key={idx} className="bg-success/5">
+                            {Object.values(row).map((value: any, cellIdx) => (
+                              <TableCell key={cellIdx} className="whitespace-nowrap">
+                                {value === null ? <span className="text-warning italic">null</span> : String(value)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay datos limpios</p>
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="modelo">
+              <Card className="p-8 shadow-card">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Modelo Entrenado
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{modeloEntrenadoData.length} registros</p>
+                </div>
+                {modeloEntrenadoData.length > 0 ? (
+                  <ScrollArea className="h-[500px] w-full rounded-md border">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                        <TableRow>
+                          {Object.keys(modeloEntrenadoData[0]).map((key) => (
+                            <TableHead key={key} className="whitespace-nowrap">{key}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {modeloEntrenadoData.map((row, idx) => (
+                          <TableRow key={idx} className="bg-primary/5">
+                            {Object.values(row).map((value: any, cellIdx) => (
+                              <TableCell key={cellIdx} className="whitespace-nowrap">
+                                {value === null ? <span className="text-warning italic">null</span> : String(value)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay datos del modelo entrenado</p>
+                  </div>
+                )}
               </Card>
             </TabsContent>
           </Tabs>
